@@ -48,8 +48,8 @@ jobs:
             chmod 600 ~/.ssh/config
             
             # Create directory if it doesn't exist
-            sudo mkdir -p ${{ vars.APP_STG_PATH }}
-            sudo chown $USER:$USER ${{ vars.APP_STG_PATH }}
+            sudo mkdir -p ${{ env.APP_STG_PATH }}
+            sudo chown $USER:$USER ${{ env.APP_STG_PATH }}
             
             # Clone or update repository
             if [ -d "${{ vars.APP_STG_PATH }}/.git" ]; then
