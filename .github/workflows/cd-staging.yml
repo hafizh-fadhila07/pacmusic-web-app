@@ -1,0 +1,52 @@
+name: Deploy Staging 🚀
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy_staging:
+    name : Deploy to staging server
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Jalankan script deployment via SSH
+      - name: Execute deployment command
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.STAGING_SERVER_IP }}
+          username: ${{ secrets.STAGING_SERVER_USERNAME }}
+          key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+          port: ${{ secrets.STAGING_SERVER_PORT }}
+          script: |
+            # Check if APP_STG_PATH exists
+            if [ -d "$APP_STG_PATH" ]; then
+              # Path exists, stop existing container, pull latest code
+              cd $APP_STG_PATH
+              sudo docker compose down pacmusic-stg
+              git pull origin main
+            else
+              # Path does not exist, clone the repository
+              ssh-keyscan github.com >> ~/.ssh/known_hosts
+              git clone $GIT_URL $APP_STG_PATH
+              cd $APP_STG_PATH
+            fi
+
+            # Generate .env file with environment variables
+            echo "APP_STG_PORT=${{ secrets.APP_STG_PORT }}" >> .env
+            echo "MINIO_STG_ENDPOINT=${{ secrets.MINIO_STG_ENDPOINT }}" >> .env
+            echo "MINIO_STG_ACCESS_KEY=${{ secrets.MINIO_STG_ACCESS_KEY }}" >> .env
+            echo "MINIO_STG_SECRET_KEY=${{ secrets.MINIO_STG_SECRET_KEY }}" >> .env
+
+            # Run Docker Compose to deploy the application
+            sudo docker compose up pacmusic-stg --build --detach 
+
+      - name: Hit Endpoint
+        run : |
+          sleep 10
+          curl ${{ secrets.STG_URL }}
