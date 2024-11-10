@@ -34,7 +34,7 @@ jobs:
             # Setup SSH for GitHub
             mkdir -p ~/.ssh
             chmod 700 ~/.ssh
-            echo "${{ secrets.GITHUB_SSH_KEY }}" > ~/.ssh/github_deploy_key
+            echo "${{ secrets.GIT_SSH_KEY }}" > ~/.ssh/github_deploy_key
             chmod 600 ~/.ssh/github_deploy_key
             
             # Setup SSH config
