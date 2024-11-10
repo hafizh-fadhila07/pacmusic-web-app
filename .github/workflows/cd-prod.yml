@@ -10,52 +10,42 @@ jobs:
   deploy-production:
     name: Deploy to production server 🚀
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
-      - name: Execute deployment command
-        uses: appleboy/ssh-action@v1.0.3
-        env:
-          APP_PATH_PROD: ${{ vars.APP_PATH_PROD }}
-          GIT_URL: ${{ vars.GIT_URL }}
-          POSTGRES_USER: ${{ secrets.DB_USER_PROD }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD_PROD }}
-          POSTGRES_DB: ${{ vars.DB_DBNAME_PROD }}
-          POSTGRES_HOST: ${{ secrets.DB_HOST_PROD }}
-          POSTGRES_PORT: ${{ secrets.DB_PORT_PROD }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          APP_NAME: ${{ vars.APP_NAME }}
-          APP_TAG: ${{ github.event.release.tag_name }}
-
+      - name: Execute deployment script
+        uses: appleboy/ssh-action@v0.1.3
         with:
-          host: ${{ secrets.SSH_HOST_PROD }}
-          username: ${{ secrets.SSH_USER_NAME_PROD }}
-          key: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
-          envs: APP_PATH_PROD, GIT_URL, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_HOST, POSTGRES_PORT, DOCKERHUB_USERNAME, DOCKERHUB_TOKEN, APP_NAME, APP_TAG
+          host: ${{ secrets.SSH_HOST_PRODDUCTION }}
+          username: ${{ secrets.SSH_USER_NAME_PRODUCTION }}
+          key: ${{ secrets.SSH_PRIVATE_KEY_PRODUCTION }}
+          port: ${{ secrets.SSH_HOST_PRODUCTION_PORT}}
+          debug: true
           script: |
-
-            # Login to Docker Hub
-            sudo docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-
-            # Check if APP_PATH_PROD exists and update or clone the repo accordingly
-            if [[ -d "/home/ubuntu/${APP_PATH_PROD}" ]]; then 
-              cd /home/ubuntu/$APP_PATH_PROD
+            # Check if APP_PROD_PATH exists and update or clone the repo accordingly
+            if [[ -d "/home/ubuntu/${ vars.APP_PROD_PATH}" ]]; then 
+              cd ${{ vars.APP_PROD_PATH }}
               sudo docker compose down pacmusic-prod
               git pull origin main
             else
               ssh-keyscan github.com >> ~/.ssh/known_hosts
-              git clone $GIT_URL /home/ubuntu/$APP_PATH_PROD
-              cd /home/ubuntu/$APP_PATH_PROD
+              git clone ${{ secrets.GIT_URL }} ${{ vars.APP_PROD_PATH }}
+              cd ${{ vars.APP_PROD_PATH }}
             fi
 
+            # Docker Login
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+            # Pull Docker Image
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/pacmusic:${{ github.event.release.tag.name }}
+
             # Generate .env file with environment variables
-            echo "POSTGRES_USER=$POSTGRES_USER" > .env
-            echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
-            echo "POSTGRES_DB=$POSTGRES_DB" >> .env
-            echo "POSTGRES_HOST=$POSTGRES_HOST" >> .env
-            echo "POSTGRES_PORT=$POSTGRES_PORT" >> .env
-            echo "APP_IMAGE=${DOCKERHUB_USERNAME}/${APP_NAME}" >> .env
-            echo "APP_TAG=$APP_TAG" >> .env
+            echo "APP_PROD_PORT=${{ secrets.APP_PROD_PORT }}" >> .env
+            echo "MINIO_PROD_ENDPOINT=${{ secrets.MINIO_PROD_ENDPOINT }}" >> .env
+            echo "MINIO_PROD_ACCESS_KEY=${{ secrets.MINIO_PROD_ACCESS_KEY }}" >> .env
+            echo "MINIO_PROD_SECRET_KEY=${{ secrets.MINIO_PROD_SECRET_KEY }}" >> .env
+            echo "APP_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/pacmusic" >> .env
+            echo "APP_TAG=${{ github.event.release.tag_name }}" >> .env
 
             # Run Docker Compose to deploy the application
             sudo docker compose up --build --detach pacmusic-prod

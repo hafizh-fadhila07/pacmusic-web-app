@@ -5,33 +5,30 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build_and_test:
-    runs-on: ubuntu-latest
-    environment: dev-testing
+    build_and_testing:
+        name : build and test
+        runs-on: ubuntu-latest
+        environment: dev-testing
+        steps:
+          # Step 1: Checkout repository
+          - name: Checkout repository
+            uses: actions/checkout@v3
 
-    steps:
-      # Step 1: Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
+          # Step 2: Create .env file based on secrets
+          - name: Create .env file
+            run: |
+              echo "MINIO_STG_ENDPOINT=${{ secrets.MINIO_STG_ENDPOINT }}" >> .env
+              echo "MINIO_STG_ACCESS_KEY=${{ secrets.MINIO_STG_ACCESS_KEY }}" >> .env
+              echo "MINIO_STG_SECRET_KEY=${{ secrets.MINIO_STG_SECRET_KEY }}" >> .env
 
-      # Step 2: Create .env file based on secrets
-      - name: Create .env file
-        run: |
-          echo "APP_STG_PORT=${{ secrets.APP_STG_PORT }}" >> .env
-          echo "MINIO_STG_ENDPOINT=${{ secrets.MINIO_STG_ENDPOINT }}" >> .env
-          echo "MINIO_STG_ACCESS_KEY=${{ secrets.MINIO_STG_ACCESS_KEY }}" >> .env
-          echo "MINIO_STG_SECRET_KEY=${{ secrets.MINIO_STG_SECRET_KEY }}" >> .env
+          # Step 3: Start Docker Compose for dev environment
+          - name: Start Docker Compose
+            run: |
+              sudo docker compose up --build --detach pacmusic-dev
 
-      # Step 3: Start Docker Compose for dev environment
-      - name: Start Docker Compose
-        run: sudo docker compose up --build --detach pacmusic-dev
+          # Step 4: Test Hit Endpoint from the application
+          - name: Hit Endpoint
+            run: |
+              sleep 10
+              curl http://localhost:5000
 
-      # Step 4: Test Hit Endpoint from the application
-      - name: Hit Endpoint
-        run: |
-          sleep 10
-          curl http://localhost:5000
-
-      # Step 5: Install testing requirements
-      - name: Install testing requirements
-        run: pip install -r test/requirements.txt
