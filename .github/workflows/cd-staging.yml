@@ -22,81 +22,76 @@ jobs:
           username: ${{ secrets.SSH_USER_NAME_STAGING }}
           key: ${{ secrets.SSH_PRIVATE_KEY_STAGING }}
           script: |
-            # Setup SSH for GitHub
-            mkdir -p ~/.ssh
-            ssh-keyscan github.com >> ~/.ssh/known_hosts
-            echo "${{ secrets.SSH_PRIVATE_KEY_STAGING }}" > ~/.ssh/id_rsa
-            chmod 600 ~/.ssh/id_rsa
+            # Debug SSH setup
+            echo "Setting up SSH..."
             
-            # Create directory if it doesn't exist
+            # Clear existing SSH settings
+            rm -rf ~/.ssh
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+            
+            # Setup GitHub SSH key
+            echo "${{ secrets.GITHUB_SSH_KEY }}" > ~/.ssh/github_deploy_key
+            chmod 600 ~/.ssh/github_deploy_key
+            
+            # Setup SSH config
+            cat > ~/.ssh/config << EOF
+            Host github.com
+                HostName github.com
+                User git
+                IdentityFile ~/.ssh/github_deploy_key
+                StrictHostKeyChecking no
+            EOF
+            chmod 600 ~/.ssh/config
+            
+            # Test SSH connection
+            ssh -T git@github.com || true
+            
+            # Setup Git config
+            git config --global user.email "your-email@example.com"
+            git config --global user.name "Your Name"
+            
+            # Debug: Print working directory
+            echo "Current directory: $(pwd)"
+            
+            # Create and setup directory
             sudo mkdir -p ${{ vars.APP_STG_PATH }}
             sudo chown $USER:$USER ${{ vars.APP_STG_PATH }}
-
-            # Deployment logic with better error handling
+            
+            # Clone or update repository
             if [ -d "${{ vars.APP_STG_PATH }}/.git" ]; then
-              echo "Repository exists, updating..."
+              echo "Updating existing repository..."
               cd ${{ vars.APP_STG_PATH }}
-              
-              # Ensure clean state
-              git reset --hard
-              git clean -fd
-              
-              # Pull latest changes
-              if ! git pull origin main; then
-                echo "Failed to pull updates"
-                exit 1
-              fi
+              git fetch origin
+              git reset --hard origin/main
             else
-              echo "Cloning repository..."
-              if ! git clone ${{ secrets.GIT_URL }} ${{ vars.APP_STG_PATH }}; then
-                echo "Failed to clone repository"
-                exit 1
-              fi
+              echo "Cloning new repository..."
+              # Using GIT_SSH_COMMAND to specify the key
+              GIT_SSH_COMMAND='ssh -i ~/.ssh/github_deploy_key -o StrictHostKeyChecking=no' \
+              git clone ${{ secrets.GIT_URL }} ${{ vars.APP_STG_PATH }}
               cd ${{ vars.APP_STG_PATH }}
             fi
-
-            # Stop existing containers
-            if sudo docker compose ps | grep pacmusic-stg; then
-              sudo docker compose down pacmusic-stg || true
-            fi
-
-            # Generate .env file (with overwrite)
+            
+            # Generate .env file
             cat > .env << EOL
             APP_STG_PORT=${{ secrets.APP_STG_PORT }}
             MINIO_STG_ENDPOINT=${{ secrets.MINIO_STG_ENDPOINT }}
             MINIO_STG_ACCESS_KEY=${{ secrets.MINIO_STG_ACCESS_KEY }}
             MINIO_STG_SECRET_KEY=${{ secrets.MINIO_STG_SECRET_KEY }}
             EOL
-
-            # Build and deploy
+            
+            # Docker deployment
+            sudo docker compose down pacmusic-stg || true
             sudo docker compose up -d --build pacmusic-stg
             
-            # Check if container is running
+            # Verify deployment
+            echo "Waiting for container to start..."
+            sleep 10
+            
             if ! sudo docker compose ps | grep -q "pacmusic-stg.*Up"; then
-              echo "Container failed to start"
+              echo "Container status:"
+              sudo docker compose ps
+              echo "Container logs:"
               sudo docker compose logs pacmusic-stg
               exit 1
             fi
-
-      - name: Verify Deployment
-        run: |
-          # Wait for application to start
-          sleep 20
-          
-          # Try to connect multiple times
-          max_attempts=3
-          attempt=1
-          
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt of $max_attempts"
-            if curl -f ${{ secrets.STG_URL }}; then
-              echo "Successfully connected to application"
-              exit 0
-            fi
-            
-            attempt=$((attempt + 1))
-            [ $attempt -le $max_attempts ] && sleep 10
-          done
-          
-          echo "Failed to connect to application after $max_attempts attempts"
-          exit 1
