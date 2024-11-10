@@ -73,9 +73,8 @@ jobs:
             EOL
             
             # Docker deployment
-            sudo docker compose down pacmusic-stg || true
             sudo docker compose up -d --build pacmusic-stg
-            
+
             # Verify deployment
             echo "Waiting for container to start..."
             sleep 10
