@@ -20,6 +20,8 @@ jobs:
               echo "MINIO_DEV_ENDPOINT=${{ secrets.MINIO_DEV_ENDPOINT }}" >> .env
               echo "MINIO_DEV_ACCESS_KEY=${{ secrets.MINIO_DEV_ACCESS_KEY }}" >> .env
               echo "MINIO_DEV_SECRET_KEY=${{ secrets.MINIO_DEV_SECRET_KEY }}" >> .env
+              echo "APP_IMAGE=your-image-name" >> .env
+              echo "APP_TAG=latest" >> .env
 
           # Step 3: Start Docker Compose for dev environment
           - name: Start Docker Compose
