@@ -44,9 +44,9 @@ jobs:
             echo "MINIO_STG_SECRET_KEY=${{ secrets.MINIO_STG_SECRET_KEY }}" >> .env
 
             # Run Docker Compose to deploy the application
-            sudo docker compose up pacmusic-stg --build --detach 
+            sudo docker-compose up pacmusic-stg --build --detach 
 
-      - name: Hit Endpoint
-        run : |
-          sleep 10
-          curl ${{ secrets.STG_URL }}
+      - name: Verify Deployment
+        run: |
+          sleep 20
+          curl -f ${{ secrets.STG_URL }}

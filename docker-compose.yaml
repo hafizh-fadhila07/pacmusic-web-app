@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 services:
 
@@ -7,7 +7,7 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: pacmusic-dev
+    container_name: pacmusic-dev-container
     environment:
       MINIO_ENDPOINT: ${MINIO_DEV_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_DEV_ACCESS_KEY}
@@ -22,7 +22,7 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: pacmusic-stg
+    container_name: pacmusic-stg-container
     environment:
       MINIO_ENDPOINT: ${MINIO_STG_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_STG_ACCESS_KEY}
@@ -35,7 +35,7 @@ services:
 # PROD
   pacmusic-prod:
     image: "${APP_IMAGE}:${APP_TAG}"
-    container_name: pacmusic-prod
+    container_name: pacmusic-prod-container
     environment:
       MINIO_ENDPOINT: ${MINIO_PROD_ENDPOINT}
       MINIO_ACCESS_KEY: ${MINIO_PROD_ACCESS_KEY}
