@@ -31,4 +31,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}pacmusic:${{ github.ref_name }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/pacmusic:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}pacmusic:latest
