@@ -18,27 +18,32 @@ jobs:
           host: ${{ secrets.SSH_HOST_PRODUCTION }}
           username: ${{ secrets.SSH_USER_NAME_PRODUCTION }}
           key: ${{ secrets.SSH_PRIVATE_KEY_PRODUCTION }}
-          port: ${{ secrets.SSH_HOST_PRODUCTION_PORT}}
+          port: ${{ secrets.SSH_HOST_PRODUCTION_PORT }}
           debug: true
           script: |
             # Check if APP_PROD_PATH exists and update or clone the repo accordingly
+            echo "Checking if APP_PROD_PATH exists at ${{ vars.APP_PROD_PATH }}"
             if [[ -d "${{ vars.APP_PROD_PATH }}" ]]; then 
               cd ${{ vars.APP_PROD_PATH }}
               sudo docker compose down pacmusic-prod
               git pull origin main
             else
               ssh-keyscan github.com >> ~/.ssh/known_hosts
+              echo "SSH keyscan completed."
               git clone ${{ secrets.GIT_URL }} ${{ vars.APP_PROD_PATH }}
               cd ${{ vars.APP_PROD_PATH }}
             fi
 
             # Docker Login
+            echo "Logging into DockerHub"
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
             # Pull Docker Image
+            echo "Pulling Docker image: ${{ secrets.DOCKERHUB_USERNAME }}/pacmusic:${{ github.event.release.tag.name }}"
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/pacmusic:${{ github.event.release.tag.name }}
 
             # Generate .env file with environment variables
+            echo "Generating .env file with APP_PROD_PORT=${{ secrets.APP_PROD_PORT }}"
             echo "APP_PROD_PORT=${{ secrets.APP_PROD_PORT }}" >> .env
             echo "MINIO_PROD_ENDPOINT=${{ secrets.MINIO_PROD_ENDPOINT }}" >> .env
             echo "MINIO_PROD_ACCESS_KEY=${{ secrets.MINIO_PROD_ACCESS_KEY }}" >> .env
@@ -47,7 +52,11 @@ jobs:
             echo "APP_TAG=${{ github.event.release.tag_name }}" >> .env
 
             # Run Docker Compose to deploy the application
+            echo "Running Docker Compose"
             sudo docker compose up --build --detach pacmusic-prod
+
+            # Check the running containers
+            sudo docker ps
 
       - name: Hit Endpoint
         run: |
