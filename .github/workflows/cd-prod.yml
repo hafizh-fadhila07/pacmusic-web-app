@@ -8,12 +8,11 @@ on:
 
 jobs:
   deploy-production:
-    name: Deploy to production server 🚀
     runs-on: ubuntu-latest
     environment: production
 
     steps:
-         - name: Execute deployment script
+      - name: Execute deployment script
         uses: appleboy/ssh-action@v0.1.3
         with:
           host: ${{ secrets.SSH_HOST_PRODUCTION }}
