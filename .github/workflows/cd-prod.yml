@@ -13,17 +13,17 @@ jobs:
     environment: production
 
     steps:
-      - name: Execute deployment script
+         - name: Execute deployment script
         uses: appleboy/ssh-action@v0.1.3
         with:
-          host: ${{ secrets.SSH_HOST_PRODDUCTION }}
+          host: ${{ secrets.SSH_HOST_PRODUCTION }}
           username: ${{ secrets.SSH_USER_NAME_PRODUCTION }}
           key: ${{ secrets.SSH_PRIVATE_KEY_PRODUCTION }}
           port: ${{ secrets.SSH_HOST_PRODUCTION_PORT}}
           debug: true
           script: |
             # Check if APP_PROD_PATH exists and update or clone the repo accordingly
-            if [[ -d "/home/ubuntu/${ vars.APP_PROD_PATH}" ]]; then 
+            if [[ -d "${{ vars.APP_PROD_PATH }}" ]]; then 
               cd ${{ vars.APP_PROD_PATH }}
               sudo docker compose down pacmusic-prod
               git pull origin main
