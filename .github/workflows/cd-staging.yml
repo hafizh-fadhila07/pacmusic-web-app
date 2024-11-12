@@ -24,7 +24,7 @@ jobs:
           username: ${{ secrets.SSH_USER_NAME_STAGING }}
           key: ${{ secrets.SSH_PRIVATE_KEY_STAGING }}
           script: |
-            # Check if APP_STG_PATH exists
+            # Check if APP_STG_PATH exis
             if [ -d "${{ vars.APP_STG_PATH }}" ]; then
               # Path exists, stop existing container, pull latest code
               cd ${{ vars.APP_STG_PATH }}
